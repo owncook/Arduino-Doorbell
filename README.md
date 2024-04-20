@@ -28,8 +28,8 @@ final project for one of my classes here at UVM.
 - LedControl by
 - MRC522 by
 - Time by
-- SoftwareSerial
-- Servo
+- SoftwareSerial by
+- Servo by
 
 ## Known Bugs
 - It doesn't even work
