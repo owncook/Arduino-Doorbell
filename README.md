@@ -21,3 +21,18 @@ final project for one of my classes here at UVM.
 | Arduino Uno R3    | N/A |
 | Active Buzzer     | N/A |
 | Power Module      | N/A |
+
+## Libraries Used  
+- EEPROM by 
+- OneWire by
+- LedControl by
+- MRC522 by
+- Time by
+- SoftwareSerial
+- Servo
+
+## Known Bugs
+- It doesn't even work
+- Servo activates all the time
+- Serial message in setup disappears on phone when an input is given
+
