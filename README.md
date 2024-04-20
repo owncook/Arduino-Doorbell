@@ -16,6 +16,7 @@ final project for one of my classes here at UVM.
 | Water Sensor      | A0 |
 | Push Button       | 8 |
 | Relay Module      | 1 |
+| HM-10 Bluetooth   | 2, 3 |
 | 9G Mini Servo     | SDA |
 | Arduino Uno R3    | N/A |
 | Active Buzzer     | N/A |
