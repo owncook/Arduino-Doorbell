@@ -133,6 +133,8 @@ LedControl ledMatrix = LedControl(LED_DATA, LED_CLOCK, LED_LATCH, LED_NUM_MATRIC
 
 // Servo
 Servo lockServo;
+int servoSpeed = 90;
+int position;
 
 // Moisture Sensor
 int moisture;
@@ -148,10 +150,10 @@ int potReading;
 
 // General logic variables
 bool locked;
+bool lockedLastLoop;
 bool someoneAtDoor = false;
 bool doorBellRung = false;
 bool message;
-String messageDivider = "\n===========================";
 
 void setup() {
 
@@ -181,6 +183,11 @@ void setup() {
   // On power up, door kept at previous lock state, else locks door
   locked = (bool)EEPROM.read(0);
 
+  // Servo
+  lockServo.attach(SERVO_PIN);
+  turnServo();
+
+
   phoneSerial.write("\nType L for lock and U for unlock\n");
 
 }
@@ -206,6 +213,29 @@ void loop() {
         message = true;
         break;
       }
+      case ('s'): {
+        phoneSerial.write("Input 'f', 'm', or 's' for fast, medium or slow servo movement\n");
+        message = true;
+        while (phoneSerial.available() == 0);
+        while (phoneSerial.available() > 0) {
+          char speedInput = tolower(phoneSerial.read());
+          switch (speedInput) {
+            case ('f'): {
+              servoSpeed = 90;
+              break;
+            }
+            case ('m'): {
+              servoSpeed = 15;
+              break;
+            }
+            case ('s'): {
+              servoSpeed = 3;
+              break;
+            }
+          }
+        }
+        break;
+      }
     }
   }
 
@@ -220,20 +250,22 @@ void loop() {
   }
 
   // Showing Lock/Unlock Icon and turning servo
-  lockServo.attach(SERVO_PIN);
   if (locked) {
     for(int i = 0; i < 8; i++) {
       ledMatrix.setRow(0, i, lockIcon[i]);
     }
-    lockServo.write(0);
+    if (lockedLastLoop != locked) {
+      turnServo();
+    }
   } else {
     for(int i = 0; i < 8; i++) {
       ledMatrix.setRow(0, i, unlockIcon[i]);
     }
-    lockServo.write(90);
+    if (lockedLastLoop == locked) {
+      turnServo();
+    }
   }
-  delay(100);
-  lockServo.detach();
+
 
   // Buzzes if button is pressed
   if (digitalRead(BUTTON_PIN) == LOW) {
@@ -264,7 +296,7 @@ void loop() {
     if (distance < 5.00) {
       phoneSerial.write("Someone detected at the door\n");
       message = true;
-      // printTimeStamp();
+
       someoneAtDoor = true;
     }
   }
@@ -288,6 +320,8 @@ void loop() {
   if (message) {
     phoneSerial.write("===========================\n");
   }
+
+  lockedLastLoop = locked;
 
 }
 
@@ -319,5 +353,32 @@ boolean getID() {
   return true;
 
 }
+
+
+void turnServo() {
+  int steps = 90 / servoSpeed;
+  int currAngle = lockServo.read();
+  int direction = 1;
+  if (locked) {
+    direction = -1;
+  }
+
+  for (int i = 0; i < steps; i++) {
+    currAngle += direction * servoSpeed;
+    currAngle = constrain(currAngle, 0, 180); // Ensure currAngle stays within 0 to 180 degrees
+    lockServo.write(currAngle);
+    delay(100);
+  }
+  delay(50);
+}
+
+
+
+
+
+
+
+
+
 
 
