@@ -154,7 +154,7 @@ void setup() {
   delay(4);
 
   // Relay
-  // pinMode(RELAY_PIN, OUTPUT);
+  pinMode(RELAY_PIN, OUTPUT);
 
   // Bluetooth
   phoneSerial.begin(9600);
@@ -165,7 +165,7 @@ void setup() {
   ledMatrix.clearDisplay(0); // Clear display
 
   // Button
-  // pinMode(BUTTON_PIN, INPUT_PULLUP);
+  pinMode(BUTTON_PIN, INPUT_PULLUP);
 
   // Ultrasonic
   pinMode(TRIG_PIN, OUTPUT);
@@ -221,7 +221,7 @@ void loop() {
   lockServo.detach();
 
   // Buzzes if button is pressed
-  if (digitalRead(BUTTON_PIN) == HIGH) {
+  if (digitalRead(BUTTON_PIN) == LOW) {
     digitalWrite(RELAY_PIN, HIGH);
     someoneAtDoor = false;
     if (!doorBellRung) {
@@ -234,7 +234,7 @@ void loop() {
     doorBellRung = false;
   }
 
- // if (!someoneAtDoor) {
+ if (!someoneAtDoor) {
     // Ultrasonic sensor send sound for 10 us
     digitalWrite(TRIG_PIN, HIGH);
     delayMicroseconds(10);
@@ -251,7 +251,7 @@ void loop() {
       // printTimeStamp();
       someoneAtDoor = true;
     }
-  //}
+  }
 
 
   // Raining notification
