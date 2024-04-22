@@ -3,7 +3,9 @@
  * This program is my final project for Digital Control w/ Embedded Systems.
  * The goal is to combine a bunch of sensor from the ELEGOO starter kit that
  * we were given and construct something useful.
+ * 
  *
+ * NOTE HAVE TO UPLOAD CODE THEN TURN ON THE POWER SUPPLY
  * ===========================================================================
  * Sensors and Components Used:
  * ----------------------------
@@ -129,6 +131,10 @@ LedControl ledMatrix = LedControl(LED_DATA, LED_CLOCK, LED_LATCH, LED_NUM_MATRIC
 // Servo
 Servo lockServo;
 
+// Moisture Sensor
+int moisture;
+bool raining;
+
 // Ultrasonic Sensor
 float time_signal_out;
 float time_seconds;
@@ -246,6 +252,18 @@ void loop() {
       someoneAtDoor = true;
     }
   //}
+
+
+  // Raining notification
+  moisture = analogRead(WATER_SENSOR_INPUT);
+  if (moisture < 300 && !raining) {
+    phoneSerial.write("It's raining");
+    //printTimeStamp();
+    raining = true;
+  } else if (moisture >= 300) {
+    raining = false;
+  }
+
 
 
 }
