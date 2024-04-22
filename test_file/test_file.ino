@@ -62,7 +62,7 @@
 #define RFID_RST 9 // Reset pin 
 
 // Relay
-#define RELAY_PIN 0
+#define RELAY_PIN 1
 
 // Bluetooth
 #define RX_TO_TX 3 // From Arduino to Bluetooth
@@ -81,6 +81,9 @@
 
 // Water sensor
 #define WATER_SENSOR_INPUT A0
+
+// Potentiometer
+#define POT_INPUT A1
 
 // Servo
 #define SERVO_PIN SDA
@@ -140,11 +143,15 @@ float time_signal_out;
 float time_seconds;
 float distance;
 
+// Potentiometer
+int potReading;
 
 // General logic variables
 bool locked;
 bool someoneAtDoor = false;
 bool doorBellRung = false;
+bool message;
+String messageDivider = "\n===========================";
 
 void setup() {
 
@@ -179,6 +186,7 @@ void setup() {
 }
 
 void loop() {
+  message = false;
 
   // Read input from phone
   while (phoneSerial.available() > 0) {
@@ -186,14 +194,16 @@ void loop() {
     switch (input) {
       case ('l'): {
         locked = true;
-        phoneSerial.write("Door Locked");
+        phoneSerial.write("Door Locked\n");
         EEPROM.write(ADDRESS, (int)locked);
+        message = true;
         break;
       }
       case ('u'): {
         locked = false;
-        phoneSerial.write("Door Unlocked");
+        phoneSerial.write("Door Unlocked\n");
         EEPROM.write(ADDRESS, (int)locked);
+        message = true;
         break;
       }
     }
@@ -202,7 +212,8 @@ void loop() {
   // Unlocks door with RFID Tag
   if (getID()) {
     if (locked && tagID == acceptedTag) {
-      phoneSerial.write("Door Unlocked");
+      phoneSerial.write("Door Unlocked\n");
+      message = true;
       locked = false;
       EEPROM.write(ADDRESS, (int)locked);
     }
@@ -229,8 +240,8 @@ void loop() {
     digitalWrite(RELAY_PIN, HIGH);
     someoneAtDoor = false;
     if (!doorBellRung) {
-      phoneSerial.write("Doorbell Rung");
-
+      phoneSerial.write("Doorbell Rung\n");
+      message = true;
       doorBellRung = true;
     }
   } else {
@@ -251,7 +262,8 @@ void loop() {
     distance = time_signal_out * SPEED_OF_SOUND;
 
     if (distance < 5.00) {
-      phoneSerial.write("Someone detected at the door");
+      phoneSerial.write("Someone detected at the door\n");
+      message = true;
       // printTimeStamp();
       someoneAtDoor = true;
     }
@@ -261,14 +273,21 @@ void loop() {
   // Raining notification
   moisture = analogRead(WATER_SENSOR_INPUT);
   if (moisture < 300 && !raining) {
-    phoneSerial.write("It's raining");
-    //printTimeStamp();
+    phoneSerial.write("It's raining\n");
+    message = true;
     raining = true;
   } else if (moisture >= 300) {
     raining = false;
   }
 
+  // Setting brightness of LED Matrix
+  potReading = (int)floor(analogRead(POT_INPUT) / 100); // Getting values 0-10
+  ledMatrix.setIntensity(0, potReading);
 
+  // Adds a divider between messages if there was a message
+  if (message) {
+    phoneSerial.write("===========================\n");
+  }
 
 }
 

@@ -23,12 +23,11 @@
 #define LED_LATCH 6
 #define LED_DATA 7
 #define LED_CLK SCL
+#define NUM_LED_MATRICES 1
+#define LED_BRIGHTNESS 5
 
 // Button
 #define BUTTON_PIN 8
-
-#define NUM_LED_MATRICES 1
-#define LED_BRIGHTNESS 5
 
 // RFID
 #define RFID_RST 9
