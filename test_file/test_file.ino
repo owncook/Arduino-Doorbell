@@ -171,6 +171,9 @@ void setup() {
   pinMode(TRIG_PIN, OUTPUT);
   pinMode(ECHO_PIN, INPUT);
 
+  // On power up, door kept at previous lock state, else locks door
+  locked = (bool)EEPROM.read(0);
+
   phoneSerial.write("\nType L for lock and U for unlock\n");
 
 }
@@ -184,13 +187,13 @@ void loop() {
       case ('l'): {
         locked = true;
         phoneSerial.write("Door Locked");
-
+        EEPROM.write(ADDRESS, (int)locked);
         break;
       }
       case ('u'): {
         locked = false;
         phoneSerial.write("Door Unlocked");
-
+        EEPROM.write(ADDRESS, (int)locked);
         break;
       }
     }
@@ -201,6 +204,7 @@ void loop() {
     if (locked && tagID == acceptedTag) {
       phoneSerial.write("Door Unlocked");
       locked = false;
+      EEPROM.write(ADDRESS, (int)locked);
     }
   }
 
