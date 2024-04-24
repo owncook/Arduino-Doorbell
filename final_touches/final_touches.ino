@@ -149,6 +149,9 @@ float distance;
 // Potentiometer
 int potReading;
 
+// Buzzer
+int volume = 500;
+
 // General logic variables
 bool locked;
 bool lockedLastLoop;
@@ -181,10 +184,13 @@ void setup() {
   pinMode(TRIG_PIN, OUTPUT);
   pinMode(ECHO_PIN, INPUT);
 
+  // Buzzer
+  pinMode(BUZZER_PIN, OUTPUT);
+
   // On power up, door kept at previous lock state, else locks door
   locked = (bool)EEPROM.read(0);
 
-  phoneSerial.write("\nType L for lock and U for unlock\n");
+  phoneSerial.write("\nType L for lock, U for unlock, or S for settings\n");
 
 }
 
@@ -207,6 +213,20 @@ void loop() {
         phoneSerial.write("Door Unlocked\n");
         EEPROM.write(ADDRESS, (int)locked);
         message = true;
+        break;
+      }
+      case ('s'): {
+        phoneSerial.write("Enter a value of volume for doorbell between 200-2000\n");
+        message = true;
+        while(phoneSerial.available() == 0);
+        while(phoneSerial.available() > 0) {
+          volume = phoneSerial.parseInt();
+          if (volume > 2000) {
+            volume = 2000;
+          } else if (volume < 200) {
+            volume = 200;
+          }
+        }
         break;
       }
     }
@@ -245,19 +265,21 @@ void loop() {
 
   // Buzzes if button is pressed
   if (digitalRead(BUTTON_PIN) == LOW) {
-    digitalWrite(RELAY_PIN, HIGH);
     someoneAtDoor = false;
+    tone(BUZZER_PIN, volume);
     if (!doorBellRung) {
       phoneSerial.write("Doorbell Rung\n");
       message = true;
       doorBellRung = true;
     }
   } else {
-    digitalWrite(RELAY_PIN, LOW);
+    noTone(BUZZER_PIN);
     doorBellRung = false;
   }
 
- if (!someoneAtDoor) {
+  if (!someoneAtDoor) {
+    // Turns off LED when no one is at the door
+    digitalWrite(RELAY_PIN, LOW);
     // Ultrasonic sensor send sound for 10 us
     digitalWrite(TRIG_PIN, HIGH);
     delayMicroseconds(10);
@@ -275,6 +297,9 @@ void loop() {
       // printTimeStamp();
       someoneAtDoor = true;
     }
+  } else {
+    // Turns on LED when someone at door
+    digitalWrite(RELAY_PIN, HIGH);
   }
 
 
