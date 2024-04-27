@@ -94,7 +94,8 @@
 #define SPEED_OF_SOUND .0343 // cm/us
 
 // EEPROM
-#define ADDRESS 0
+#define LOCKED_ADDRESS 0
+#define VOLUME_ADDRESS 1
 
 // Buzzer 
 #define BUZZER_PIN 5
@@ -136,6 +137,8 @@ LedControl ledMatrix = LedControl(LED_DATA, LED_CLOCK, LED_LATCH, LED_NUM_MATRIC
 
 // Servo
 Servo lockServo;
+int servoPosition;
+int servoSpeed = 90;
 
 // Moisture Sensor
 int moisture;
@@ -153,8 +156,7 @@ int potReading;
 int volume = 500;
 
 // General logic variables
-bool locked;
-bool lockedLastLoop;
+bool locked = true;
 bool someoneAtDoor = false;
 bool doorBellRung = false;
 bool message;
@@ -188,9 +190,20 @@ void setup() {
   pinMode(BUZZER_PIN, OUTPUT);
 
   // On power up, door kept at previous lock state, else locks door
-  locked = (bool)EEPROM.read(0);
+  locked = (bool)EEPROM.read(LOCKED_ADDRESS);
 
-  phoneSerial.write("\nType L for lock, U for unlock, or S for settings\n");
+  lockServo.attach(SERVO_PIN);
+  if (locked) {
+    lockServo.write(0);
+  } else {
+    lockServo.write(90);
+  }
+  delay(100);
+  lockServo.detach();
+
+  phoneSerial.write("\n===========================\n");
+  phoneSerial.write("Type 'L' for lock, 'U' for unlock, or 'S' for settings\n");
+  phoneSerial.write("===========================\n");
 
 }
 
@@ -204,29 +217,64 @@ void loop() {
       case ('l'): {
         locked = true;
         phoneSerial.write("Door Locked\n");
-        EEPROM.write(ADDRESS, (int)locked);
+        EEPROM.write(LOCKED_ADDRESS, (int)locked);
         message = true;
         break;
       }
       case ('u'): {
         locked = false;
         phoneSerial.write("Door Unlocked\n");
-        EEPROM.write(ADDRESS, (int)locked);
+        EEPROM.write(LOCKED_ADDRESS, (int)locked);
         message = true;
         break;
       }
       case ('s'): {
-        phoneSerial.write("Enter a value of volume for doorbell between 200-2000\n");
-        message = true;
-        while(phoneSerial.available() == 0);
-        while(phoneSerial.available() > 0) {
-          volume = phoneSerial.parseInt();
-          if (volume > 2000) {
-            volume = 2000;
-          } else if (volume < 200) {
-            volume = 200;
+        phoneSerial.write("Enter 'S' to change servo speed or 'T' to change doorbell tone\n");
+        while (phoneSerial.available() == 0);
+        while (phoneSerial.available() > 0) {
+          char settingsChoice = tolower(phoneSerial.read());
+          switch (settingsChoice) {
+            case ('s'): {
+              phoneSerial.write("Enter 'f', 'm', or 's' for fast, medium, or slow servo speed\n");
+              while (phoneSerial.available() == 0);
+              while (phoneSerial.available() > 0) {
+                char speedInput = phoneSerial.read();
+                switch (speedInput) {
+                  case ('f'): {
+                    servoSpeed = 90;
+                    break;
+                  }
+                  case ('m'): {
+                    servoSpeed = 15;
+                    break;
+                  }
+                  case ('s'): {
+                    servoSpeed = 6;
+                    break;
+                  }
+                }
+              }
+              break;
+            }
+
+            case ('t'): {
+              phoneSerial.write("Enter a value of volume for doorbell between 50-2000\n");
+              message = true;
+              while(phoneSerial.available() == 0);
+              while(phoneSerial.available() > 0) {
+                volume = phoneSerial.parseInt();
+                if (volume > 2000) {
+                  volume = 2000;
+                } else if (volume < 50) {
+                  volume = 50;
+                }
+              }
+              break;
+            }
           }
         }
+        phoneSerial.write("Task successful, exiting settings...\n");
+        message = true;
         break;
       }
     }
@@ -238,7 +286,7 @@ void loop() {
       phoneSerial.write("Door Unlocked\n");
       message = true;
       locked = false;
-      EEPROM.write(ADDRESS, (int)locked);
+      EEPROM.write(LOCKED_ADDRESS, (int)locked);
     }
   }
 
@@ -248,16 +296,16 @@ void loop() {
     for(int i = 0; i < 8; i++) {
       ledMatrix.setRow(0, i, lockIcon[i]);
     }
-    if (!lockedLastLoop) {
-      lockServo.write(0);
+    if (servoPosition == 90) {
+      turnServo();
     }
-    
+
   } else {
     for(int i = 0; i < 8; i++) {
       ledMatrix.setRow(0, i, unlockIcon[i]);
     }
-    if (lockedLastLoop) {
-      lockServo.write(90);
+    if (servoPosition == 0) {
+      turnServo();
     }
   }
   delay(100);
@@ -322,7 +370,6 @@ void loop() {
     phoneSerial.write("===========================\n");
   }
 
-  lockedLastLoop = locked;
 }
 
 
@@ -351,6 +398,23 @@ boolean getID() {
   tagID.toUpperCase();
   rfid.PICC_HaltA(); // Stop reading
   return true;
+
+}
+
+void turnServo() {
+
+  int endAngle = abs(90 - servoPosition);
+  servoPosition = lockServo.read();
+
+  while (servoPosition != endAngle) {
+    if (endAngle == 0) {
+      servoPosition -= servoSpeed;
+    } else {
+      servoPosition += servoSpeed;
+    }
+    lockServo.write(servoPosition);
+    delay(250);
+  }
 
 }
 
