@@ -35,7 +35,4 @@ This project is a prototype smart doorbell system made with an _Arduino Uno R3_ 
 - Servo by Arduino
 - EEPROM by Arduino
 
-## Known Bugs
-- Servo seems to activate randomly at times
-- Serial message written in setup is buggy when sent to phone
-
+### References
