@@ -1,3 +1,40 @@
+/*                         Smart Doorbell
+ *
+ * This program is my final project for Digital Control w/ Embedded Systems.
+ * The goal is to combine a bunch of sensor from the ELEGOO starter kit that
+ * we were given and construct something useful.
+ * 
+ *
+ * NOTE HAVE TO UPLOAD CODE THEN TURN ON THE POWER SUPPLY
+ * ===========================================================================
+ * Sensors and Components Used:
+ * ----------------------------
+ * 1. RFID Sensor
+ * 2. Ultrasonic Sensor
+ * 3. Relay Module
+ * 4. Water Sensor
+ * 5. 9G Mini Servo
+ * 6. HM-10 Bluetooth Module
+ * 7. 8x8 LED Matrix
+ * 8. Active Buzzer
+ * 9. Arduino Uno R3
+ * ----------------------------
+ * ===========================================================================
+ * Component Pinouts
+ * ------------------------------------
+ *                                  Elegoo
+ * Component                        Arduino R3
+ * ------------------------------------
+ * RFID Sensor
+ * Ultrasonic Sensor
+ * Relay Module
+ * Water Sensor
+ * 9G Mini Servo
+ * HM-10 Bluetooth Module
+ * 8x8 LED Matrix
+ * Active Buzzer
+ * Arduino Uno R3
+*/
 
 #include <SPI.h> // RFID
 #include <MFRC522.h> // RFID
@@ -5,43 +42,63 @@
 #include <SoftwareSerial.h> // Bluetooth
 #include <LedControl.h> // 8x8 Matrix
 #include <Servo.h> // Servo
-#include <TimeLib.h> // Current time
+
+/*
+ * Defining pins
+ */
+
+// RFID
+/*
+ * 3.3V -> Vin
+ * RST -> 9
+ * GND -> GND
+ * IRQ -> NOTHING
+ * MISO -> 12
+ * MOSI -> 11
+ * SCK -> 13
+ * SDA -> 10
+ */
+#define RFID_SS 10 // SPI Communication (SDA)
+#define RFID_RST 9 // Reset pin 
 
 // Relay
-#define RELAY_PIN 1
+#define RELAY_PIN 2
 
 // Bluetooth
-#define TX_TO_RX 2 // From Arduino to Bluetooth
 #define RX_TO_TX 3 // From Arduino to Bluetooth
-
-// Ultrasonic Sensor
-#define TRIG_PIN 4
-#define ECHO_PIN 5
-#define SPEED_OF_SOUND .0343 // cm/us
-
-// LED Matrix
-#define LED_LATCH 6
-#define LED_DATA 7
-#define LED_CLK SCL
+#define TX_TO_RX 4 // From Arduino to Bluetooth
 
 // Button
 #define BUTTON_PIN 8
 
-#define NUM_LED_MATRICES 1
+// LED Matrix
+#define LED_LATCH 6
+#define LED_DATA 7
+#define LED_CLOCK SCL
+
+#define LED_NUM_MATRICES 1
 #define LED_BRIGHTNESS 5
 
-// RFID
-#define RFID_RST 9
-#define RFID_SDA 10
+// Water sensor
+#define WATER_SENSOR_INPUT A0
 
-// Water Sensor 
-#define WATER_SENSOR_IN A0
-
-// EEPROM
-#define EEPROM_ADDRESS 0
+// Potentiometer
+#define POT_INPUT A1
 
 // Servo
 #define SERVO_PIN SDA
+
+// Ultrasonic Sensor
+#define TRIG_PIN 0
+#define ECHO_PIN 1 // Might have to change
+#define SPEED_OF_SOUND .0343 // cm/us
+
+// EEPROM
+#define LOCKED_ADDRESS 0
+#define VOLUME_ADDRESS 1
+
+// Buzzer 
+#define BUZZER_PIN 5
 
 /*
  * Variables/Objects
@@ -49,9 +106,9 @@
 
 // RFID
 byte readCard[4];
-String acceptedTag = "FAF37991";
+String acceptedTag = "FAF37991"; // Tag ID from one of the RFID library examples
 String tagID = "";
-MFRC522 rfid(RFID_SDA, RFID_RST);
+MFRC522 rfid(RFID_SS, RFID_RST);
 boolean getID(); 
 
 // Bluetooth
@@ -76,30 +133,33 @@ byte unlockIcon[8] = {B00111100,
                       B11111111,
                       B11111111};
 
-LedControl ledMatrix = LedControl(LED_DATA, LED_CLK, LED_LATCH, NUM_LED_MATRICES);
+LedControl ledMatrix = LedControl(LED_DATA, LED_CLOCK, LED_LATCH, LED_NUM_MATRICES);
 
 // Servo
 Servo lockServo;
+int servoPosition;
+int servoSpeed = 90;
+
+// Moisture Sensor
+int moisture;
+bool raining;
 
 // Ultrasonic Sensor
 float time_signal_out;
 float time_seconds;
 float distance;
 
-// Clock
-// Hour, minute, second, month, day, year
-int currTime[6] = {7, 50, 30, 4, 7, 2024};
-void printTimeStamp(); // Prints current time to phone (used after every event)
+// Potentiometer
+int potReading;
 
-// Moisture Sensor
-int moisture;
-bool raining = false;
+// Buzzer
+int volume = 500;
 
 // General logic variables
-bool locked;
-String previousLockState;
+bool locked = true;
 bool someoneAtDoor = false;
 bool doorBellRung = false;
+bool message;
 
 void setup() {
 
@@ -126,33 +186,29 @@ void setup() {
   pinMode(TRIG_PIN, OUTPUT);
   pinMode(ECHO_PIN, INPUT);
 
-  // Initialize clock with current time
-  setTime(currTime[0], currTime[1], currTime[2], currTime[3], currTime[4], currTime[5]);
-
-  // Read last locked value from EEPROM
-  // byte boolChecker = EEPROM.read(ADDRESS);
-  // bool lastLockVal = (bool)boolChecker;
+  // Buzzer
+  pinMode(BUZZER_PIN, OUTPUT);
 
   // On power up, door kept at previous lock state, else locks door
-  // if (lastLockVal == false || lastLockVal == true) {
-  //   locked = lastLockVal;
-  // } else {
-  //   locked = true;
-  // }
+  locked = (bool)EEPROM.read(LOCKED_ADDRESS);
 
-  phoneSerial.write("\nType L for lock and U for unlock\n");
+  lockServo.attach(SERVO_PIN);
+  if (locked) {
+    lockServo.write(0);
+  } else {
+    lockServo.write(90);
+  }
+  delay(100);
+  lockServo.detach();
+
+  phoneSerial.write("\n===========================\n");
+  phoneSerial.write("Type 'L' for lock, 'U' for unlock, or 'S' for settings\n");
+  phoneSerial.write("===========================\n");
 
 }
 
 void loop() {
-
-  // Update time
-  currTime[0] = hour();
-  currTime[1] = minute();
-  currTime[2] = second();
-  currTime[3] = month();
-  currTime[4] = day();
-  currTime[5] = year();
+  message = false;
 
   // Read input from phone
   while (phoneSerial.available() > 0) {
@@ -160,16 +216,65 @@ void loop() {
     switch (input) {
       case ('l'): {
         locked = true;
-        // EEPROM.write(ADDRESS, locked);
-        phoneSerial.write("Door Locked");
-        printTimeStamp();
+        phoneSerial.write("Door Locked\n");
+        EEPROM.write(LOCKED_ADDRESS, (int)locked);
+        message = true;
         break;
       }
       case ('u'): {
         locked = false;
-        // EEPROM.write(ADDRESS, locked);
-        phoneSerial.write("Door Unlocked");
-        printTimeStamp();
+        phoneSerial.write("Door Unlocked\n");
+        EEPROM.write(LOCKED_ADDRESS, (int)locked);
+        message = true;
+        break;
+      }
+      case ('s'): {
+        phoneSerial.write("Enter 'S' to change servo speed or 'T' to change doorbell tone\n");
+        while (phoneSerial.available() == 0);
+        while (phoneSerial.available() > 0) {
+          char settingsChoice = tolower(phoneSerial.read());
+          switch (settingsChoice) {
+            case ('s'): {
+              phoneSerial.write("Enter 'f', 'm', or 's' for fast, medium, or slow servo speed\n");
+              while (phoneSerial.available() == 0);
+              while (phoneSerial.available() > 0) {
+                char speedInput = phoneSerial.read();
+                switch (speedInput) {
+                  case ('f'): {
+                    servoSpeed = 90;
+                    break;
+                  }
+                  case ('m'): {
+                    servoSpeed = 15;
+                    break;
+                  }
+                  case ('s'): {
+                    servoSpeed = 6;
+                    break;
+                  }
+                }
+              }
+              break;
+            }
+
+            case ('t'): {
+              phoneSerial.write("Enter a value of volume for doorbell between 50-2000\n");
+              message = true;
+              while(phoneSerial.available() == 0);
+              while(phoneSerial.available() > 0) {
+                volume = phoneSerial.parseInt();
+                if (volume > 2000) {
+                  volume = 2000;
+                } else if (volume < 50) {
+                  volume = 50;
+                }
+              }
+              break;
+            }
+          }
+        }
+        phoneSerial.write("Task successful, exiting settings...\n");
+        message = true;
         break;
       }
     }
@@ -178,10 +283,10 @@ void loop() {
   // Unlocks door with RFID Tag
   if (getID()) {
     if (locked && tagID == acceptedTag) {
-      phoneSerial.write("Door Unlocked");
-      printTimeStamp();
+      phoneSerial.write("Door Unlocked\n");
+      message = true;
       locked = false;
-      // EEPROM.write(ADDRESS, locked);
+      EEPROM.write(LOCKED_ADDRESS, (int)locked);
     }
   }
 
@@ -191,41 +296,38 @@ void loop() {
     for(int i = 0; i < 8; i++) {
       ledMatrix.setRow(0, i, lockIcon[i]);
     }
-    lockServo.write(0);
-  
+    if (servoPosition == 90) {
+      turnServo();
+    }
+
   } else {
     for(int i = 0; i < 8; i++) {
       ledMatrix.setRow(0, i, unlockIcon[i]);
     }
-    lockServo.write(90);
+    if (servoPosition == 0) {
+      turnServo();
+    }
   }
+  delay(100);
   lockServo.detach();
 
   // Buzzes if button is pressed
   if (digitalRead(BUTTON_PIN) == LOW) {
-    digitalWrite(RELAY_PIN, HIGH);
     someoneAtDoor = false;
+    tone(BUZZER_PIN, volume);
     if (!doorBellRung) {
-      phoneSerial.write("Doorbell Rung");
-      printTimeStamp();
+      phoneSerial.write("Doorbell Rung\n");
+      message = true;
       doorBellRung = true;
     }
   } else {
-    digitalWrite(RELAY_PIN, LOW);
+    noTone(BUZZER_PIN);
     doorBellRung = false;
   }
 
-  // Raining notification
-  moisture = analogRead(WATER_SENSOR_IN);
-  if (moisture < 300 && !raining) {
-    phoneSerial.write("It's raining");
-    printTimeStamp();
-    raining = true;
-  } else if (moisture >= 300) {
-    raining = false;
-  }
-
   if (!someoneAtDoor) {
+    // Turns off LED when no one is at the door
+    digitalWrite(RELAY_PIN, LOW);
     // Ultrasonic sensor send sound for 10 us
     digitalWrite(TRIG_PIN, HIGH);
     delayMicroseconds(10);
@@ -238,12 +340,36 @@ void loop() {
     distance = time_signal_out * SPEED_OF_SOUND;
 
     if (distance < 5.00) {
-      phoneSerial.write("Someone detected at the door");
-      printTimeStamp();
+      phoneSerial.write("Someone detected at the door\n");
+      message = true;
+      // printTimeStamp();
       someoneAtDoor = true;
     }
+  } else {
+    // Turns on LED when someone at door
+    digitalWrite(RELAY_PIN, HIGH);
   }
-  
+
+
+  // Raining notification
+  moisture = analogRead(WATER_SENSOR_INPUT);
+  if (moisture < 300 && !raining) {
+    phoneSerial.write("It's raining\n");
+    message = true;
+    raining = true;
+  } else if (moisture >= 300) {
+    raining = false;
+  }
+
+  // Setting brightness of LED Matrix
+  potReading = (int)floor(analogRead(POT_INPUT) / 100); // Getting values 0-10
+  ledMatrix.setIntensity(0, potReading);
+
+  // Adds a divider between messages if there was a message
+  if (message) {
+    phoneSerial.write("===========================\n");
+  }
+
 }
 
 
@@ -264,7 +390,7 @@ boolean getID() {
   tagID = "";
   // The MIFARE PICCs that we use have 4 byte UID
   for ( uint8_t i = 0; i < 4; i++) {
-    //readCard[i] = mfrc522.uid.uidByte[i];
+
     // Adds the 4 bytes in a single String variable
     tagID.concat(String(rfid.uid.uidByte[i], HEX));
   }
@@ -275,28 +401,20 @@ boolean getID() {
 
 }
 
-void printTimeStamp() {
-  // Stores the current time as a string to pass to the phone
-  char time_str[6][4]; 
-  for(int i = 0; i < 6; i++) {
-    sprintf(time_str[i], "%d", currTime[i]);
+void turnServo() {
+
+  int endAngle = abs(90 - servoPosition);
+  servoPosition = lockServo.read();
+
+  while (servoPosition != endAngle) {
+    if (endAngle == 0) {
+      servoPosition -= servoSpeed;
+    } else {
+      servoPosition += servoSpeed;
+    }
+    lockServo.write(servoPosition);
+    delay(250);
   }
-  phoneSerial.write(" | ");
-  phoneSerial.write(time_str[0]);
-  phoneSerial.write(':');
-  phoneSerial.write(time_str[1]);
-  phoneSerial.write(':');
-  phoneSerial.write(time_str[2]);
-  phoneSerial.write(' ');
-  phoneSerial.write(time_str[3]);
-  phoneSerial.write('/');
-  phoneSerial.write(time_str[4]);
-  phoneSerial.write('/');
-  phoneSerial.write(time_str[5]);
-  phoneSerial.write("\n");
 
 }
-
-
-
 
