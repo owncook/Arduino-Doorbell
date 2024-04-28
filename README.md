@@ -9,8 +9,9 @@ This project is a prototype smart doorbell system made with an _Arduino Uno R3_ 
 ## Setup
 1. Setup circuit as shown in **INSERT LINK TO CIRCUIT DIAGRAM**
 2. Download [BLE Serial tiny](https://apps.apple.com/us/app/ble-serial-tiny/id1607862132)
+3. When circuit is connected, run code in 
 
-> **_Optional:_** Run the code in **INSERT LINK TO FILE HERE**, following the comments to rename your HM-10 Bluetooth Device
+> **_Optional:_** Run the code in [rename_bluetooth](https://github.com/owncook/Arduino-Doorbell/blob/main/rename_bluetooth/rename_bluetooth.ino), following the comments to rename your HM-10 Bluetooth Device
 
 ## Parts List
 |        Part       | Pins Used |
