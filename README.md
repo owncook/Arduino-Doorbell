@@ -12,37 +12,6 @@ This project is a prototype smart doorbell system made with an _Arduino Uno R3_ 
 
 > **_Optional:_** Run the code in **INSERT LINK TO FILE HERE**, following the comments to rename your HM-10 Bluetooth Device
 
-## Project Requirements
-
-### A: Problem and Story
-| Requirement | Fulfillment |
-|-------------|-------------|
-| What problem do you plan to solve? What is your story? | Transform modern doorbell design to be more useful and convenient |
-
-### B: Inputs
-| Requirement | Fulfillment |
-|-------------|-------------|
-| At least one digital sensor that we used in lab | Push Button |
-| One from a sensor you have not used yet in lab | RFID Sensor |
-| At least one Analog input (not signal conditioned) | Potentiometer |
-| At least one signal-conditioned Analog input  | Water Sensor |
-| One remote input | HM-10 Bluetooth |
-
-### C: Outputs
-| Requirement | Fulfillment |
-|-------------|-------------|
-| At least one axis of motion with speed control | Mini Servo |
-| Relay or Solenoid actuation | Relay |
-| At least one illumination output with brightness control | 8x8 LED Matrix |
-| Another illumination output, or a sound output with pitch control | Passive Buzzer |
-| One remote output | Hm-10 Bluetooth |
-
-### D: Internals
-| Requirement | Fulfillment |
-|-------------|-------------|
-| Use a new library | MRC522 RFID Library |
-| Use non-volatile storage | EEPROM |
-
 ## Parts List
 |        Part       | Pins Used |
 | ----------------- | --------- |
@@ -67,6 +36,35 @@ This project is a prototype smart doorbell system made with an _Arduino Uno R3_ 
 - Servo by Arduino
 - EEPROM by Arduino
 
+## Project Requirements
+
+### A: Problem and Story
+| Requirement | Fulfillment |
+|-------------|-------------|
+| What problem do you plan to solve? What is your story? | Transform modern doorbell design to be more useful and convenient |
+
+### B: Inputs
+| Requirement | Fulfillment |
+|-------------|-------------|
+| At least one digital sensor that we used in lab | Push Button |
+| One digital sensor that we have not used yet in lab | RFID Sensor |
+| At least one Analog input | Potentiometer |
+| At least one signal-conditioned Analog input  | Water Sensor |
+| One remote input | HM-10 Bluetooth |
+
+### C: Outputs
+| Requirement | Fulfillment |
+|-------------|-------------|
+| At least one axis of motion with speed control | Mini Servo |
+| Relay or Solenoid actuation | Relay |
+| At least one illumination output with brightness control | 8x8 LED Matrix |
+| Another illumination output, or a sound output with pitch control | Passive Buzzer |
+| One remote output | Hm-10 Bluetooth |
+
+### D: Internals
+| Requirement | Fulfillment |
+|-------------|-------------|
+| Use a new library | MRC522 RFID Library |
+| Use non-volatile storage | EEPROM |
+
 ## References
-
-
