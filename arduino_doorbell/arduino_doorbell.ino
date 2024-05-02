@@ -1,39 +1,16 @@
-/*                         Smart Doorbell
- *
+/*                              Smart Doorbell
+ * -------------------------------------------------------------------------
  * This program is my final project for Digital Control w/ Embedded Systems.
  * The goal is to combine a bunch of sensor from the ELEGOO starter kit that
  * we were given and construct something useful.
- * 
  *
- * NOTE HAVE TO UPLOAD CODE THEN TURN ON THE POWER SUPPLY
- * ===========================================================================
- * Sensors and Components Used:
- * ----------------------------
- * 1. RFID Sensor
- * 2. Ultrasonic Sensor
- * 3. Relay Module
- * 4. Water Sensor
- * 5. 9G Mini Servo
- * 6. HM-10 Bluetooth Module
- * 7. 8x8 LED Matrix
- * 8. Active Buzzer
- * 9. Arduino Uno R3
- * ----------------------------
- * ===========================================================================
- * Component Pinouts
- * ------------------------------------
- *                                  Elegoo
- * Component                        Arduino R3
- * ------------------------------------
- * RFID Sensor
- * Ultrasonic Sensor
- * Relay Module
- * Water Sensor
- * 9G Mini Servo
- * HM-10 Bluetooth Module
- * 8x8 LED Matrix
- * Active Buzzer
- * Arduino Uno R3
+ * =========================================================================
+ * Setup
+ * -------------------------------------------------------------------------
+ * Connect each pin on each device to the respective pin as specified on
+ * github: https://github.com/owncook/Arduino-Doorbell/tree/main
+ *
+ * =========================================================================
 */
 
 #include <SPI.h> // RFID
@@ -44,8 +21,10 @@
 #include <Servo.h> // Servo
 
 /*
+ * ======================================================================
  * Defining pins
- */
+ * ======================================================================
+*/
 
 // RFID
 /*
@@ -87,6 +66,8 @@
 
 // Servo
 #define SERVO_PIN SDA
+#define LOCKED_POS 0
+#define UNLOCKED_POS 90
 
 // Ultrasonic Sensor
 #define TRIG_PIN 0
@@ -95,20 +76,23 @@
 
 // EEPROM
 #define LOCKED_ADDRESS 0
-#define VOLUME_ADDRESS 1
 
 // Buzzer 
 #define BUZZER_PIN 5
 
 /*
- * Variables/Objects
- */
+ * ======================================================================
+ * Variables/Objects/Functions
+ * ======================================================================
+*/
 
 // RFID
 byte readCard[4];
 String acceptedTag = "FAF37991"; // Tag ID from one of the RFID library examples
+// Helper variables for getID function
 String tagID = "";
 MFRC522 rfid(RFID_SS, RFID_RST);
+// 
 boolean getID(); 
 
 // Bluetooth
@@ -192,6 +176,7 @@ void setup() {
   // On power up, door kept at previous lock state, else locks door
   locked = (bool)EEPROM.read(LOCKED_ADDRESS);
 
+  // Make sure servo is in right state upon power
   lockServo.attach(SERVO_PIN);
   if (locked) {
     lockServo.write(0);
@@ -201,6 +186,7 @@ void setup() {
   delay(100);
   lockServo.detach();
 
+  // Menu message
   phoneSerial.write("\n===========================\n");
   phoneSerial.write("Type 'L' for lock, 'U' for unlock, or 'S' for settings\n");
   phoneSerial.write("===========================\n");
@@ -208,7 +194,7 @@ void setup() {
 }
 
 void loop() {
-  message = false;
+  message = false; // Deals with 
 
   // Read input from phone
   while (phoneSerial.available() > 0) {
@@ -238,7 +224,7 @@ void loop() {
               phoneSerial.write("Enter 'f', 'm', or 's' for fast, medium, or slow servo speed\n");
               while (phoneSerial.available() == 0);
               while (phoneSerial.available() > 0) {
-                char speedInput = phoneSerial.read();
+                char speedInput = tolower(phoneSerial.read());
                 switch (speedInput) {
                   case ('f'): {
                     servoSpeed = 90;
@@ -273,6 +259,7 @@ void loop() {
             }
           }
         }
+        // Confirmation message
         phoneSerial.write("Task successful, exiting settings...\n");
         message = true;
         break;
@@ -291,12 +278,13 @@ void loop() {
   }
 
   // Showing Lock/Unlock Icon and turning servo
-  lockServo.attach(SERVO_PIN);
+  lockServo.attach(SERVO_PIN); // Servo was jittering if it wasn't attached and detached
   if (locked) {
+    // Setting each row to each byte in respective icon
     for(int i = 0; i < 8; i++) {
       ledMatrix.setRow(0, i, lockIcon[i]);
     }
-    if (servoPosition == 90) {
+    if (servoPosition == UNLOCKED_POS) {
       turnServo();
     }
 
@@ -304,7 +292,7 @@ void loop() {
     for(int i = 0; i < 8; i++) {
       ledMatrix.setRow(0, i, unlockIcon[i]);
     }
-    if (servoPosition == 0) {
+    if (servoPosition == LOCKED_POS) {
       turnServo();
     }
   }
@@ -315,6 +303,8 @@ void loop() {
   if (digitalRead(BUTTON_PIN) == LOW) {
     someoneAtDoor = false;
     tone(BUZZER_PIN, volume);
+
+    // Makes sure only one message is sent per press
     if (!doorBellRung) {
       phoneSerial.write("Doorbell Rung\n");
       message = true;
@@ -339,17 +329,16 @@ void loop() {
     // Distance in cm
     distance = time_signal_out * SPEED_OF_SOUND;
 
+    // If someone is close enough to door
     if (distance < 5.00) {
       phoneSerial.write("Someone detected at the door\n");
       message = true;
-      // printTimeStamp();
       someoneAtDoor = true;
     }
   } else {
     // Turns on LED when someone at door
     digitalWrite(RELAY_PIN, HIGH);
   }
-
 
   // Raining notification
   moisture = analogRead(WATER_SENSOR_INPUT);
@@ -372,17 +361,17 @@ void loop() {
 
 }
 
-
 // Gets ID of RFID tag that is scanned
+// Function from MRC522 Arduino library. Source: https://github.com/miguelbalboa/rfid/blob/master/examples/DumpInfo/DumpInfo.ino
 boolean getID() {
 
   // Getting ready for Reading PICCs
-  //If a new PICC placed to RFID reader continue
+  // If a new PICC placed to RFID reader continue
   if ( ! rfid.PICC_IsNewCardPresent()) {
     return false;
   }
 
-  //Since a PICC placed get Serial and continue
+  // Since a PICC placed get Serial and continue
   if ( ! rfid.PICC_ReadCardSerial()) {
     return false;
   }
@@ -401,13 +390,14 @@ boolean getID() {
 
 }
 
+// Turns servo 90º to either position 0 or 90 at varying speeds
 void turnServo() {
 
   int endAngle = abs(90 - servoPosition);
   servoPosition = lockServo.read();
 
   while (servoPosition != endAngle) {
-    if (endAngle == 0) {
+    if (endAngle == LOCKED_POS) {
       servoPosition -= servoSpeed;
     } else {
       servoPosition += servoSpeed;
