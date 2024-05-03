@@ -7,7 +7,7 @@
 This project is a prototype smart doorbell system made with an _Arduino Uno R3_ and various sensors from the _ELEGOO Most Complete Starter Kit_. This project is being made for a final project for one of my classes here at UVM.
 
 ## Setup
-1. Setup circuit as shown in **INSERT LINK TO CIRCUIT DIAGRAM**
+1. Setup circuit as shown in [schematic](https://github.com/owncook/Arduino-Doorbell/blob/main/schematic.png)
 2. Download [BLE Serial tiny](https://apps.apple.com/us/app/ble-serial-tiny/id1607862132)
 3. When the circuit is connected, run the code in [get_rfid_id](https://github.com/owncook/Arduino-Doorbell/blob/main/get_rfid_id/get_rfid_id.ino) and copy and paste the tag ID into the acceptedTag variable on line 109 in [arduino_doorbell](https://github.com/owncook/Arduino-Doorbell/blob/7d867f3024a8e6fcdeb75cd9113df0d4b9efdf85/arduino_doorbell/arduino_doorbell.ino#L109) 
 
