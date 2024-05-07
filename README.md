@@ -50,7 +50,7 @@ This project is a prototype smart doorbell system made with an _Arduino Uno R3_ 
 | At least one digital sensor that we used in lab | Push Button |
 | One digital sensor that we have not used yet in lab | RFID Sensor |
 | At least one Analog input | Potentiometer |
-| At least one signal-conditioned Analog input  | Water Sensor |
+| At least one signal-conditioned Analog input  | Water Sensor with BJT |
 | One remote input | HM-10 Bluetooth |
 
 ### C: Outputs
