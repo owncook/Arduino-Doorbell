@@ -69,3 +69,6 @@ This project is a prototype smart doorbell system made with an _Arduino Uno R3_ 
 | Use non-volatile storage | EEPROM |
 
 ## References
+- Goodheart, M. "Lab 11."[Source Code] Section A01, Digital Control w/ Embedded Systems, University of Vermont, Burlington VT, May 7, 2024.  
+- Balboa, Miguel. “Miguelbalboa/RFID: Arduino Rfid Library for MFRC522.” GitHub, 7 Dec. 2023, github.com/miguelbalboa/rfid?tab=readme-ov-file. 
+
